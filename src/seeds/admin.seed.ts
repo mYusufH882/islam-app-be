@@ -11,7 +11,7 @@ export const createAdminUser = async () => {
       // Create admin user
       await User.create({
         username: 'admin',
-        email: 'admin@persis-cimsel.org',
+        email: 'admincimsel@mail.com',
         password: 'Admin123!',  // Will be hashed by model hook
         name: 'Admin',
         role: 'admin'
