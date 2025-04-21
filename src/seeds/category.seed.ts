@@ -4,12 +4,12 @@ export const createDefaultCategories = async () => {
   try {
     const categories = [
       {
-        name: 'Ibadah',
-        description: 'Artikel tentang ibadah dalam Islam'
-      },
-      {
         name: 'Al-Quran',
         description: 'Artikel tentang Al-Quran dan tafsirnya'
+      },
+      {
+        name: 'Ibadah',
+        description: 'Artikel tentang ibadah dalam Islam'
       },
       {
         name: 'Informasi',

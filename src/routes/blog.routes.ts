@@ -12,10 +12,10 @@ router.get('/blogs', BlogController.getAllBlogs);
 router.get('/blogs/:id', BlogController.getBlogById);
 router.get('/authors/:userId/blogs', BlogController.getBlogsByAuthor);
 
-// Protected routes
-router.post('/blogs', authMiddleware, validateCreateBlog, BlogController.createBlog);
-router.put('/blogs/:id', authMiddleware, validateUpdateBlog, BlogController.updateBlog);
-router.delete('/blogs/:id', authMiddleware, BlogController.deleteBlog);
+// Admin-only routes for blog management
+router.post('/blogs', authMiddleware, adminMiddleware, validateCreateBlog, BlogController.createBlog);
+router.put('/blogs/:id', authMiddleware, adminMiddleware, validateUpdateBlog, BlogController.updateBlog);
+router.delete('/blogs/:id', authMiddleware, adminMiddleware, BlogController.deleteBlog);
 
 // Category routes
 // Public routes

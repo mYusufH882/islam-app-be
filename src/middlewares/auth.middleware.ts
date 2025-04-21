@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../utils/jwt.util';
 import User from '../models/user.model';
 
 export interface AuthRequest extends Request {
@@ -17,12 +17,17 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     }
     
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret') as { id: number };
+    const decoded = verifyToken(token);
+    
+    if (!decoded || typeof decoded !== 'object') {
+      res.status(401).json({ message: 'Unauthorized: Invalid token' });
+      return;
+    }
     
     const user = await User.findByPk(decoded.id);
     
     if (!user) {
-      res.status(401).json({ message: 'Unauthorized: Invalid token' });
+      res.status(401).json({ message: 'Unauthorized: User not found' });
       return;
     }
     
@@ -32,7 +37,6 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     next();
   } catch (error) {
     res.status(401).json({ message: 'Unauthorized: Invalid token' });
-    return;
   }
 };
 

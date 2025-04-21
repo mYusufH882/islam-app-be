@@ -7,7 +7,7 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 export const getAllCategories = async (req: Request, res: Response): Promise<void> => {
   try {
     const categories = await Category.findAll({
-      order: [['name', 'ASC']]
+      order: [['id', 'ASC']]
     });
     
     res.json({

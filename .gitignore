@@ -3,8 +3,8 @@
 /dist
 
 # Environment
+# .env.*
 .env
-.env.*
 
 # Database
 *.sqlite

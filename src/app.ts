@@ -1,8 +1,12 @@
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import { initDatabase } from './config/database';
 import authRoutes from './routes/auth.routes';
 import blogRoutes from './routes/blog.routes';
@@ -11,9 +15,8 @@ import prayerRoutes from './routes/prayer.routes';
 import bookmarkRoutes from './routes/bookmark.routes';
 import { createAdminUser } from './seeds/admin.seed';
 import { createDefaultCategories } from './seeds/category.seed';
-
-// Load environment variables
-dotenv.config();
+import User from './models/user.model';
+import Category from './models/category.model';
 
 // Initialize express
 const app = express();
@@ -39,16 +42,50 @@ app.use('/api', bookmarkRoutes);
 
 // Initialize Database
 initDatabase().then(async() => {
-    // Create admin user if it doesn't exist
-    await createAdminUser();
+    // Check if database needs seeding
+    const shouldSeed = await checkIfSeedingNeeded();
     
-    // Create default categories
-    await createDefaultCategories();
+    if (shouldSeed) {
+        console.log('First time setup detected, seeding initial data...');
+        // Create admin user if it doesn't exist
+        await createAdminUser();
+        
+        // Create default categories
+        await createDefaultCategories();
+        console.log('Initial data seeding completed.');
+    } else {
+        console.log('Database already initialized, skipping seeding.');
+    }
 
     // Start server
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });
 });
+
+/**
+ * Check if the database needs to be seeded.
+ * Returns true if seeding is needed, false otherwise.
+ */
+async function checkIfSeedingNeeded(): Promise<boolean> {
+    try {
+        // Check if admin user exists
+        const adminCount = await User.count({
+            where: {
+                role: 'admin'
+            }
+        });
+        
+        // Check if categories exist
+        const categoryCount = await Category.count();
+        
+        // If there are no admin users and no categories, we need to seed
+        return adminCount === 0 || categoryCount === 0;
+    } catch (error) {
+        console.error('Error checking database state:', error);
+        // If there's an error, assume we need to seed (safer approach)
+        return true;
+    }
+}
 
 export default app;

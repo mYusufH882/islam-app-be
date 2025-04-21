@@ -136,6 +136,7 @@ export const getBlogById = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Create new blog
+// Create new blog - admin only
 export const createBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, content, categoryId, image, status } = req.body;
@@ -144,6 +145,16 @@ export const createBlog = async (req: AuthRequest, res: Response): Promise<void>
       res.status(401).json({
         success: false,
         message: 'User not authenticated'
+      });
+      return;
+    }
+    
+    // Admin check should already be handled by the adminMiddleware
+    // But we can add an extra check for safety
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: 'Only administrators can create blog posts'
       });
       return;
     }
@@ -199,6 +210,7 @@ export const createBlog = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 // Update blog
+// Update blog - admin only
 export const updateBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -212,21 +224,22 @@ export const updateBlog = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
     
+    // Admin check should already be handled by the adminMiddleware
+    // But we can add an extra check for safety
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: 'Only administrators can update blog posts'
+      });
+      return;
+    }
+    
     const blog = await Blog.findByPk(id);
     
     if (!blog) {
       res.status(404).json({
         success: false,
         message: 'Blog not found'
-      });
-      return;
-    }
-    
-    // Only allow the author or admin to update the blog
-    if (blog.userId !== req.userId && req.user?.role !== 'admin') {
-      res.status(403).json({
-        success: false,
-        message: 'You do not have permission to update this blog'
       });
       return;
     }
@@ -287,6 +300,7 @@ export const updateBlog = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 // Delete blog
+// Delete blog - admin only
 export const deleteBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -299,21 +313,22 @@ export const deleteBlog = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
     
+    // Admin check should already be handled by the adminMiddleware
+    // But we can add an extra check for safety
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: 'Only administrators can delete blog posts'
+      });
+      return;
+    }
+    
     const blog = await Blog.findByPk(id);
     
     if (!blog) {
       res.status(404).json({
         success: false,
         message: 'Blog not found'
-      });
-      return;
-    }
-    
-    // Only allow the author or admin to delete the blog
-    if (blog.userId !== req.userId && req.user?.role !== 'admin') {
-      res.status(403).json({
-        success: false,
-        message: 'You do not have permission to delete this blog'
       });
       return;
     }
