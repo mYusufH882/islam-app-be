@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes';
 import blogRoutes from './routes/blog.routes';
 import quranRoutes from './routes/quran.routes';
 import prayerRoutes from './routes/prayer.routes';
+import bookmarkRoutes from './routes/bookmark.routes';
 import { createAdminUser } from './seeds/admin.seed';
 import { createDefaultCategories } from './seeds/category.seed';
 
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', blogRoutes);
 app.use('/api/quran', quranRoutes);
 app.use('/api/prayer', prayerRoutes);
+app.use('/api', bookmarkRoutes);
 
 // Initialize Database
 initDatabase().then(async() => {
