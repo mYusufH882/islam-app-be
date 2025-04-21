@@ -1,4 +1,3 @@
-// src/routes/blog.routes.ts
 import { Router } from 'express';
 import * as BlogController from '../controllers/blog.controller';
 import * as CategoryController from '../controllers/category.controller';

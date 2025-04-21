@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import { initDatabase } from './config/database';
 import authRoutes from './routes/auth.routes';
 import blogRoutes from './routes/blog.routes';
+import quranRoutes from './routes/quran.routes';
+import prayerRoutes from './routes/prayer.routes';
 import { createAdminUser } from './seeds/admin.seed';
 import { createDefaultCategories } from './seeds/category.seed';
 
@@ -30,6 +32,8 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', blogRoutes);
+app.use('/api/quran', quranRoutes);
+app.use('/api/prayer', prayerRoutes);
 
 // Initialize Database
 initDatabase().then(async() => {
