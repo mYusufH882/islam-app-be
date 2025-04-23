@@ -1,21 +1,26 @@
 import { Router } from 'express';
 import * as BookmarkController from '../controllers/bookmark.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { validateCreateBookmark, validateUpdateBookmark } from '../middlewares/bookmark.validator.middleware';
+import { validateBookmarkCreation, validateBookmarkUpdate } from '../middlewares/bookmark.validator.middleware';
 
 const router = Router();
 
 // All bookmark routes require authentication
 router.use(authMiddleware);
 
-// Bookmark CRUD routes
-router.post('/bookmarks', validateCreateBookmark, BookmarkController.createBookmark);
-router.get('/bookmarks', BookmarkController.getAllBookmarks);
-router.get('/bookmarks/:id', BookmarkController.getBookmarkById);
-router.put('/bookmarks/:id', validateUpdateBookmark, BookmarkController.updateBookmark);
-router.delete('/bookmarks/:id', BookmarkController.deleteBookmark);
+// Create a new bookmark
+router.post('/bookmarks', validateBookmarkCreation, BookmarkController.createBookmark);
 
-// Get bookmarks by type
-router.get('/bookmarks/type/:type', BookmarkController.getBookmarksByType);
+// Get all bookmarks for the authenticated user
+router.get('/bookmarks', BookmarkController.getUserBookmarks);
+
+// Get a specific bookmark by ID
+router.get('/bookmarks/:id', BookmarkController.getBookmarkById);
+
+// Update a bookmark
+router.put('/bookmarks/:id', validateBookmarkUpdate, BookmarkController.updateBookmark);
+
+// Delete a bookmark
+router.delete('/bookmarks/:id', BookmarkController.deleteBookmark);
 
 export default router;

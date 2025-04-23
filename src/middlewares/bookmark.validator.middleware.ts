@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-export const validateCreateBookmark = (req: Request, res: Response, next: NextFunction): void => {
+export const validateBookmarkCreation = (req: Request, res: Response, next: NextFunction): void => {
   const { type, referenceId } = req.body;
   
   if (!type || !referenceId) {
@@ -11,59 +11,25 @@ export const validateCreateBookmark = (req: Request, res: Response, next: NextFu
     return;
   }
   
-  // Validate type
+  // Validate bookmark type
   if (!['blog', 'quran', 'prayer'].includes(type)) {
     res.status(400).json({
       success: false,
-      message: 'Invalid bookmark type. Must be one of: blog, quran, prayer'
+      message: 'Invalid bookmark type. Type must be one of: blog, quran, prayer'
     });
     return;
-  }
-  
-  // Validate referenceId format based on type
-  if (type === 'blog') {
-    // For blog, referenceId should be a number
-    if (isNaN(Number(referenceId))) {
-      res.status(400).json({
-        success: false,
-        message: 'Blog referenceId must be a valid blog ID (number)'
-      });
-      return;
-    }
-  } else if (type === 'quran') {
-    // For quran, referenceId should be in format "surah:ayah" e.g. "1:5"
-    const quranRegex = /^\d+:\d+$/;
-    if (!quranRegex.test(referenceId)) {
-      res.status(400).json({
-        success: false,
-        message: 'Quran referenceId must be in format "surah:ayah" (e.g. "1:5")'
-      });
-      return;
-    }
-  } else if (type === 'prayer') {
-    // For prayer, referenceId could be a prayer name or ID
-    // This is dependent on your prayer times implementation
-    if (!referenceId || referenceId.trim() === '') {
-      res.status(400).json({
-        success: false,
-        message: 'Prayer referenceId cannot be empty'
-      });
-      return;
-    }
   }
   
   next();
 };
 
-export const validateUpdateBookmark = (req: Request, res: Response, next: NextFunction): void => {
-  const { notes } = req.body;
-  
-  // For update, only notes can be changed
-  // We allow empty notes (to clear notes), but we check if notes field is provided
-  if (notes === undefined) {
+export const validateBookmarkUpdate = (req: Request, res: Response, next: NextFunction): void => {
+  // For updates, we primarily validate that notes field exists
+  // as it's the only field we allow to be updated after creation
+  if (req.body.notes === undefined) {
     res.status(400).json({
       success: false,
-      message: 'Notes field is required'
+      message: 'Notes field is required for updating a bookmark'
     });
     return;
   }

@@ -1,97 +1,62 @@
 import { Response } from 'express';
-import { Op } from 'sequelize';
 import Bookmark from '../models/bookmark.model';
-import Blog from '../models/blog.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
 
-// Create new bookmark
+// Create a new bookmark
 export const createBookmark = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { type, referenceId, notes } = req.body;
-    
+    // Only authenticated users can create bookmarks
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Authentication required to bookmark content'
       });
       return;
     }
-    
+
+    const { type, referenceId, notes } = req.body;
+
     // Validate bookmark type
     if (!['blog', 'quran', 'prayer'].includes(type)) {
       res.status(400).json({
         success: false,
-        message: 'Invalid bookmark type. Must be one of: blog, quran, prayer'
+        message: 'Invalid bookmark type. Type must be one of: blog, quran, prayer'
       });
       return;
     }
-    
-    // Check if reference exists based on type
-    if (type === 'blog') {
-      const blog = await Blog.findByPk(referenceId);
-      if (!blog) {
-        res.status(400).json({
-          success: false,
-          message: 'Blog post not found'
-        });
-        return;
-      }
-      
-      // Check if blog is published
-      if (blog.status !== 'published') {
-        res.status(400).json({
-          success: false,
-          message: 'Cannot bookmark unpublished blog post'
-        });
-        return;
-      }
-    }
-    // For 'quran' and 'prayer' types, validation would be added here
-    // based on your API implementation for those features
-    
-    // Check if user already has this bookmark
+
+    // Check if bookmark already exists
     const existingBookmark = await Bookmark.findOne({
-      where: {
+      where: { 
         userId: req.userId,
         type,
         referenceId
       }
     });
-    
+
     if (existingBookmark) {
-      res.status(400).json({
-        success: false,
-        message: 'You have already bookmarked this item'
+      // Update the existing bookmark if it exists
+      await existingBookmark.update({ notes });
+      
+      res.json({
+        success: true,
+        message: 'Bookmark updated successfully',
+        data: existingBookmark
       });
       return;
     }
-    
-    // Check bookmark limit (5 per type)
-    const bookmarkCount = await Bookmark.count({
-      where: {
-        userId: req.userId,
-        type
-      }
-    });
-    
-    if (bookmarkCount >= 5) {
-      res.status(400).json({
-        success: false,
-        message: `You've reached the maximum limit of 5 bookmarks for ${type}. Please remove some bookmarks before adding new ones.`
-      });
-      return;
-    }
-    
-    // Create bookmark
+
+    // Create new bookmark
     const bookmark = await Bookmark.create({
       userId: req.userId,
       type,
       referenceId,
-      notes: notes || null
+      notes
     });
-    
+
     res.status(201).json({
       success: true,
+      message: 'Bookmark created successfully',
       data: bookmark
     });
   } catch (error) {
@@ -103,77 +68,38 @@ export const createBookmark = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-// Get all user bookmarks
-export const getAllBookmarks = async (req: AuthRequest, res: Response): Promise<void> => {
+// Get all bookmarks for the authenticated user
+export const getUserBookmarks = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Only authenticated users can retrieve their bookmarks
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Authentication required to access bookmarks'
       });
       return;
     }
+
+    const { type } = req.query;
     
-    const { type, includeContent } = req.query;
+    const whereClause: any = { userId: req.userId };
     
-    // Filter by bookmark type if provided
-    const whereClause: any = {
-      userId: req.userId
-    };
-    
+    // Filter by type if provided
     if (type && ['blog', 'quran', 'prayer'].includes(type as string)) {
       whereClause.type = type;
     }
-    
-    // Get all bookmarks
+
     const bookmarks = await Bookmark.findAll({
       where: whereClause,
       order: [['createdAt', 'DESC']]
     });
-    
-    // If includeContent=true, fetch related content for each bookmark
-    if (includeContent === 'true') {
-      const bookmarksWithContent = await Promise.all(
-        bookmarks.map(async (bookmark) => {
-          const bookmarkData = bookmark.toJSON();
-          
-          // For blog bookmarks, fetch the blog post details
-          if (bookmark.type === 'blog') {
-            try {
-              const blogPost = await Blog.findByPk(bookmark.referenceId);
-              if (blogPost) {
-                // Use a different property name to avoid TypeScript error
-                // @ts-ignore - we're adding a custom property to the JSON object
-                bookmarkData.relatedContent = {
-                  title: blogPost.title,
-                  excerpt: blogPost.content.substring(0, 100) + '...',
-                  publishedAt: blogPost.publishedAt
-                };
-              }
-            } catch (err) {
-              console.error('Error fetching blog for bookmark:', err);
-            }
-          }
-          
-          // For other types, handle accordingly
-          // Here you would add integration with Quran API or Prayer Times API
-          
-          return bookmarkData;
-        })
-      );
-      
-      res.json({
-        success: true,
-        data: bookmarksWithContent
-      });
-    } else {
-      res.json({
-        success: true,
-        data: bookmarks
-      });
-    }
+
+    res.json({
+      success: true,
+      data: bookmarks
+    });
   } catch (error) {
-    console.error('Get bookmarks error:', error);
+    console.error('Get user bookmarks error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -181,26 +107,27 @@ export const getAllBookmarks = async (req: AuthRequest, res: Response): Promise<
   }
 };
 
-// Get bookmark by ID
+// Get a specific bookmark by ID
 export const getBookmarkById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    
+    // Only authenticated users can access bookmarks
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Authentication required to access bookmarks'
       });
       return;
     }
-    
+
+    const { id } = req.params;
+
     const bookmark = await Bookmark.findOne({
-      where: {
+      where: { 
         id,
-        userId: req.userId
+        userId: req.userId  // Ensure users can only access their own bookmarks
       }
     });
-    
+
     if (!bookmark) {
       res.status(404).json({
         success: false,
@@ -208,13 +135,13 @@ export const getBookmarkById = async (req: AuthRequest, res: Response): Promise<
       });
       return;
     }
-    
+
     res.json({
       success: true,
       data: bookmark
     });
   } catch (error) {
-    console.error('Get bookmark error:', error);
+    console.error('Get bookmark by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -222,27 +149,28 @@ export const getBookmarkById = async (req: AuthRequest, res: Response): Promise<
   }
 };
 
-// Update bookmark
+// Update a bookmark
 export const updateBookmark = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const { notes } = req.body;
-    
+    // Only authenticated users can update bookmarks
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Authentication required to update bookmarks'
       });
       return;
     }
-    
+
+    const { id } = req.params;
+    const { notes } = req.body;
+
     const bookmark = await Bookmark.findOne({
-      where: {
+      where: { 
         id,
-        userId: req.userId
+        userId: req.userId  // Ensure users can only update their own bookmarks
       }
     });
-    
+
     if (!bookmark) {
       res.status(404).json({
         success: false,
@@ -250,14 +178,12 @@ export const updateBookmark = async (req: AuthRequest, res: Response): Promise<v
       });
       return;
     }
-    
-    // Only notes can be updated
-    await bookmark.update({
-      notes: notes || null
-    });
-    
+
+    await bookmark.update({ notes });
+
     res.json({
       success: true,
+      message: 'Bookmark updated successfully',
       data: bookmark
     });
   } catch (error) {
@@ -269,26 +195,27 @@ export const updateBookmark = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-// Delete bookmark
+// Delete a bookmark
 export const deleteBookmark = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    
+    // Only authenticated users can delete bookmarks
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Authentication required to delete bookmarks'
       });
       return;
     }
-    
+
+    const { id } = req.params;
+
     const bookmark = await Bookmark.findOne({
-      where: {
+      where: { 
         id,
-        userId: req.userId
+        userId: req.userId  // Ensure users can only delete their own bookmarks
       }
     });
-    
+
     if (!bookmark) {
       res.status(404).json({
         success: false,
@@ -296,58 +223,15 @@ export const deleteBookmark = async (req: AuthRequest, res: Response): Promise<v
       });
       return;
     }
-    
+
     await bookmark.destroy();
-    
+
     res.json({
       success: true,
       message: 'Bookmark deleted successfully'
     });
   } catch (error) {
     console.error('Delete bookmark error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
-
-// Get bookmarks by type
-export const getBookmarksByType = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { type } = req.params;
-    
-    if (!req.userId) {
-      res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-      return;
-    }
-    
-    // Validate bookmark type
-    if (!['blog', 'quran', 'prayer'].includes(type)) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid bookmark type. Must be one of: blog, quran, prayer'
-      });
-      return;
-    }
-    
-    const bookmarks = await Bookmark.findAll({
-      where: {
-        userId: req.userId,
-        type
-      },
-      order: [['createdAt', 'DESC']]
-    });
-    
-    res.json({
-      success: true,
-      data: bookmarks
-    });
-  } catch (error) {
-    console.error('Get bookmarks by type error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
