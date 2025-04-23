@@ -2,11 +2,13 @@ import { Router } from 'express';
 import * as BookmarkController from '../controllers/bookmark.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validateBookmarkCreation, validateBookmarkUpdate } from '../middlewares/bookmark.validator.middleware';
+import { userRoleMiddleware } from '../middlewares/user-role.middleware';
 
 const router = Router();
 
 // All bookmark routes require authentication
 router.use(authMiddleware);
+router.use(userRoleMiddleware);
 
 // Create a new bookmark
 router.post('/bookmarks', validateBookmarkCreation, BookmarkController.createBookmark);
