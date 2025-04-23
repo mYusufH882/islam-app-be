@@ -271,6 +271,16 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
+    const user = await User.findByPk(req.userId);
+    
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+      return;
+    }
+
     res.json({
       success: true,
       data: {

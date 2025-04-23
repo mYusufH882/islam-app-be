@@ -1,20 +1,23 @@
-import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
+import jwt, { SignOptions, JwtPayload, Secret } from 'jsonwebtoken';
 import User from '../models/user.model';
 
-const SECRET = process.env.JWT_SECRET || 'default_secret';
+const SECRET: Secret = process.env.JWT_SECRET || 'default_secret';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 const JWT_REFRESH_SECRET: Secret = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
 export const generateTokens = (user: User) => {
+  // Use type assertion to help TypeScript understand the type
   const token = jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
   );
 
   const refreshToken = jwt.sign(
     { id: user.id },
     SECRET, // Using the same secret for both tokens
-    { expiresIn: '30d' }
+    { expiresIn: JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
   );
 
   return { token, refreshToken };
