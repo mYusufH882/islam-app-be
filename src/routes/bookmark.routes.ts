@@ -2,27 +2,48 @@ import { Router } from 'express';
 import * as BookmarkController from '../controllers/bookmark.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validateBookmarkCreation, validateBookmarkUpdate } from '../middlewares/bookmark.validator.middleware';
-import { userRoleMiddleware } from '../middlewares/user-role.middleware';
+import { userRoleMiddleware } from '../middlewares/role.middleware';
 
 const router = Router();
 
-// All bookmark routes require authentication
-router.use(authMiddleware);
-router.use(userRoleMiddleware);
+// No longer need '/bookmarks' prefix since it's handled in app.ts
+// Apply middleware to each route individually for better control
 
 // Create a new bookmark
-router.post('/bookmarks', validateBookmarkCreation, BookmarkController.createBookmark);
+router.post('/', 
+    authMiddleware, 
+    userRoleMiddleware, 
+    validateBookmarkCreation, 
+    BookmarkController.createBookmark
+);
 
 // Get all bookmarks for the authenticated user
-router.get('/bookmarks', BookmarkController.getUserBookmarks);
+router.get('/', 
+    authMiddleware, 
+    userRoleMiddleware, 
+    BookmarkController.getUserBookmarks
+);
 
 // Get a specific bookmark by ID
-router.get('/bookmarks/:id', BookmarkController.getBookmarkById);
+router.get('/:id', 
+    authMiddleware, 
+    userRoleMiddleware, 
+    BookmarkController.getBookmarkById
+);
 
 // Update a bookmark
-router.put('/bookmarks/:id', validateBookmarkUpdate, BookmarkController.updateBookmark);
+router.put('/:id', 
+    authMiddleware, 
+    userRoleMiddleware, 
+    validateBookmarkUpdate, 
+    BookmarkController.updateBookmark
+);
 
 // Delete a bookmark
-router.delete('/bookmarks/:id', BookmarkController.deleteBookmark);
+router.delete('/:id', 
+    authMiddleware, 
+    userRoleMiddleware, 
+    BookmarkController.deleteBookmark
+);
 
 export default router;

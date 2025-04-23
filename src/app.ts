@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { initDatabase } from './config/database';
 import authRoutes from './routes/auth.routes';
+import userManagementRoutes from './routes/user-management.routes';
 import blogRoutes from './routes/blog.routes';
 import quranRoutes from './routes/quran.routes';
 import prayerRoutes from './routes/prayer.routes';
@@ -35,10 +36,11 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', userManagementRoutes);
 app.use('/api', blogRoutes);
 app.use('/api/quran', quranRoutes);
 app.use('/api/prayer', prayerRoutes);
-app.use('/api', bookmarkRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
 
 // Initialize Database
 initDatabase().then(async() => {

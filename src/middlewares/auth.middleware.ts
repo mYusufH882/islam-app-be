@@ -7,6 +7,11 @@ export interface AuthRequest extends Request {
   userId?: number;
 }
 
+/**
+ * Middleware to authenticate users
+ * This only verifies the token and attaches user data to the request
+ * Role checks are handled by separate middleware
+ */
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
@@ -27,7 +32,9 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     const user = await User.findByPk(decoded.id);
     
     if (!user) {
-      res.status(401).json({ message: 'Unauthorized: User not found' });
+      res.status(401).json({ message: 'Unauthorized' });
+      console.log('Unauthorized: User not found');
+      
       return;
     }
     
@@ -37,14 +44,5 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     next();
   } catch (error) {
     res.status(401).json({ message: 'Unauthorized: Invalid token' });
-  }
-};
-
-export const adminMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Forbidden: Admin access required' });
-    return;
   }
 };

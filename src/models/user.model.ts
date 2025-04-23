@@ -9,6 +9,7 @@ interface UserAttributes {
   password: string;
   name: string;
   role: 'admin' | 'user';
+  status?: 'active' | 'inactive';
   lastLogin?: Date;
 }
 
@@ -63,6 +64,10 @@ User.init(
     role: {
       type: DataTypes.ENUM('admin', 'user'),
       defaultValue: 'user'
+    },
+    status: {
+      type: DataTypes.ENUM('active', 'inactive'),
+      defaultValue: 'active'
     },
     lastLogin: {
       type: DataTypes.DATE
