@@ -48,13 +48,11 @@ initDatabase().then(async() => {
     const shouldSeed = await checkIfSeedingNeeded();
     
     if (shouldSeed) {
-        console.log('First time setup detected, seeding initial data...');
         // Create admin user if it doesn't exist
         await createAdminUser();
         
         // Create default categories
         await createDefaultCategories();
-        console.log('Initial data seeding completed.');
     } else {
         console.log('Database already initialized, skipping seeding.');
     }

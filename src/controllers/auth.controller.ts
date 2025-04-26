@@ -40,19 +40,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       role: 'user'
     });
 
-    // Generate tokens
-    const { token, refreshToken } = generateTokens(user);
-
-    // Save refresh token to database
-    await RefreshToken.create({
-      token: refreshToken,
-      userId: user.id,
-      expiresAt: getRefreshTokenExpiry()
-    });
-
-    // Update last login
-    await user.update({ lastLogin: new Date() });
-
     // Return user data and tokens
     res.status(201).json({
       success: true,
@@ -63,9 +50,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           name: user.name,
           role: user.role
-        },
-        token,
-        refreshToken
+        }
       }
     });
   } catch (error) {
