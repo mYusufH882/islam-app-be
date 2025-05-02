@@ -2,12 +2,15 @@ import { Router } from 'express';
 import * as BookmarkController from '../controllers/bookmark.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validateBookmarkCreation, validateBookmarkUpdate } from '../middlewares/bookmark.validator.middleware';
-import { userRoleMiddleware } from '../middlewares/role.middleware';
+import { adminRoleMiddleware, userRoleMiddleware } from '../middlewares/role.middleware';
 
 const router = Router();
 
-// No longer need '/bookmarks' prefix since it's handled in app.ts
-// Apply middleware to each route individually for better control
+// Admin route to get all bookmarks
+router.get('/admin/bookmarks', authMiddleware, adminRoleMiddleware, BookmarkController.getAllBookmarks);
+
+// Admin route to delete any bookmark
+router.delete('/admin/bookmarks/:id', authMiddleware, adminRoleMiddleware, BookmarkController.deleteBookmark);
 
 // Create a new bookmark
 router.post('/', 

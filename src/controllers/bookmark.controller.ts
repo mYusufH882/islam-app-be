@@ -1,6 +1,94 @@
 import { Response } from 'express';
 import Bookmark from '../models/bookmark.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import User from '../models/user.model';
+import { Op } from 'sequelize';
+
+// Get all bookmarks (admin only)
+export const getAllBookmarks = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Ensure the requester is an admin
+    if (!req.user || req.user.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+      return;
+    }
+
+    const { 
+      search, 
+      type,
+      page = 1, 
+      limit = 10 
+    } = req.query;
+    
+    const offset = (Number(page) - 1) * Number(limit);
+    
+    // Build the where clause
+    const whereClause: any = {};
+    
+    // Add type filter if provided
+    if (type && ['blog', 'quran', 'prayer'].includes(type as string)) {
+      whereClause.type = type;
+    }
+    
+    // Build search query if provided
+    if (search) {
+      const users = await User.findAll({
+        where: {
+          [Op.or]: [
+            { name: { [Op.like]: `%${search}%` } },
+            { username: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } }
+          ]
+        },
+        attributes: ['id']
+      });
+      
+      const userIds = users.map(user => user.id);
+      
+      whereClause[Op.or] = [
+        { userId: { [Op.in]: userIds } },
+        { referenceId: { [Op.like]: `%${search}%` } },
+        { notes: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    // Find bookmarks with pagination
+    const { rows: bookmarks, count } = await Bookmark.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'name', 'username', 'email']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: Number(limit),
+      offset: offset
+    });
+
+    res.json({
+      success: true,
+      data: {
+        bookmarks,
+        pagination: {
+          total: count,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(count / Number(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get all bookmarks error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
 
 // Create a new bookmark
 export const createBookmark = async (req: AuthRequest, res: Response): Promise<void> => {
