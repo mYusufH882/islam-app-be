@@ -14,5 +14,7 @@ router.post('/refresh-token', AuthController.refreshToken);
 // Protected routes
 router.post('/logout', authMiddleware, AuthController.logout);
 router.get('/profile', authMiddleware, AuthController.getProfile);
+router.put('/profile', authMiddleware, AuthController.updateProfile);
+router.put('/change-password', authMiddleware, AuthController.changePassword);
 
 export default router;
