@@ -8,6 +8,8 @@ import { adminRoleMiddleware } from '../middlewares/role.middleware';
 const router = Router();
 
 // Blog routes
+router.get('/blogs/stats', BlogController.getBlogStats);
+
 // Public routes
 router.get('/blogs', BlogController.getAllBlogs);
 router.get('/blogs/:id', BlogController.getBlogById);

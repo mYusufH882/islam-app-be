@@ -135,7 +135,39 @@ export const getBlogById = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// Create new blog
+// Di blog.controller.ts
+export const getBlogStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Hitung total semua blog
+    const totalCount = await Blog.count();
+    
+    // Hitung blog yang dipublikasikan
+    const publishedCount = await Blog.count({
+      where: { status: 'published' }
+    });
+    
+    // Hitung blog dalam status draft
+    const draftCount = await Blog.count({
+      where: { status: 'draft' }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        total: totalCount,
+        published: publishedCount,
+        draft: draftCount
+      }
+    });
+  } catch (error) {
+    console.error('Get blog stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
 // Create new blog - admin only
 export const createBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
