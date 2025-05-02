@@ -47,13 +47,6 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
       }
     });
 
-    // Quran stats - ini mungkin perlu implementasi khusus berdasarkan bagaimana Anda melacak penggunaan Al-Quran
-    // Contoh placeholder
-    const quranStats = {
-      ayatDibaca: 1254,  // Ini sebaiknya diambil dari data penggunaan nyata
-      surahSelesai: 15   // Ini sebaiknya diambil dari data penggunaan nyata
-    };
-
     res.json({
       success: true,
       data: {
@@ -71,7 +64,6 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
           total: totalBookmarks,
           thisMonth: bookmarksThisMonth
         },
-        quranStats
       }
     });
   } catch (error) {
