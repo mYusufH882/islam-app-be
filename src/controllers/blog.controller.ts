@@ -1,9 +1,12 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
+import path from 'path';
 import Blog from '../models/blog.model';
 import Category from '../models/category.model';
 import User from '../models/user.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import fileUtil from '../utils/file.util';
+import { getRelativeImagePath } from '../middlewares/upload.middleware';
 
 // Get all blogs (with filtering)
 export const getAllBlogs = async (req: Request, res: Response): Promise<void> => {
@@ -166,35 +169,36 @@ export const getBlogStats = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// Create new blog - admin only
+// Membuat blog baru - hanya admin
 export const createBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, content, categoryId, image, status } = req.body;
+    const { title, content, categoryId, status } = req.body;
     
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Pengguna tidak terautentikasi'
       });
       return;
     }
     
-    // Admin check should already be handled by the adminMiddleware
-    // But we can add an extra check for safety
     if (req.user?.role !== 'admin') {
       res.status(403).json({
         success: false,
-        message: 'Only administrators can create blog posts'
+        message: 'Hanya administrator yang dapat membuat postingan blog'
       });
       return;
     }
     
-    // Check if category exists
+    // Jika tidak ada file, gunakan string kosong
+    const imagePath = req.file ? (getRelativeImagePath(req.file) || '') : '';
+    
+    // Periksa apakah kategori ada
     const category = await Category.findByPk(categoryId);
     if (!category) {
       res.status(400).json({
         success: false,
-        message: 'Invalid category'
+        message: 'Kategori tidak valid'
       });
       return;
     }
@@ -205,7 +209,7 @@ export const createBlog = async (req: AuthRequest, res: Response): Promise<void>
       title,
       content,
       categoryId,
-      image: image || null,
+      image: imagePath, // Gunakan imagePath yang selalu string
       status,
       publishedAt,
       userId: req.userId
@@ -231,35 +235,32 @@ export const createBlog = async (req: AuthRequest, res: Response): Promise<void>
       data: newBlog
     });
   } catch (error) {
-    console.error('Create blog error:', error);
+    console.error('Error membuat blog:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Error server'
     });
   }
 };
 
-// Update blog
-// Update blog - admin only
+// Memperbarui blog - hanya admin
 export const updateBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { title, content, categoryId, image, status } = req.body;
+    const { title, content, categoryId, status } = req.body;
     
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Pengguna tidak terautentikasi'
       });
       return;
     }
     
-    // Admin check should already be handled by the adminMiddleware
-    // But we can add an extra check for safety
     if (req.user?.role !== 'admin') {
       res.status(403).json({
         success: false,
-        message: 'Only administrators can update blog posts'
+        message: 'Hanya administrator yang dapat memperbarui postingan blog'
       });
       return;
     }
@@ -269,24 +270,46 @@ export const updateBlog = async (req: AuthRequest, res: Response): Promise<void>
     if (!blog) {
       res.status(404).json({
         success: false,
-        message: 'Blog not found'
+        message: 'Blog tidak ditemukan'
       });
       return;
     }
     
-    // Check if category exists if categoryId is provided
+    // Dapatkan path gambar baru jika ada unggahan
+    // Selalu gunakan string, bukan null
+    let imagePath: string = blog.image || '';
+    if (req.file) {
+      // Hapus file gambar lama jika ada
+      if (blog.image) {
+        const oldImagePath = path.join(process.cwd(), 'public', blog.image);
+        fileUtil.removeFile(oldImagePath);
+      }
+      
+      // Set path gambar baru
+      const newImagePath = getRelativeImagePath(req.file);
+      imagePath = newImagePath || '';
+    } else if (req.body.removeImage === 'true') {
+      // Hapus gambar jika ada flag removeImage
+      if (blog.image) {
+        const oldImagePath = path.join(process.cwd(), 'public', blog.image);
+        fileUtil.removeFile(oldImagePath);
+      }
+      imagePath = '';  // Gunakan string kosong
+    }
+    
+    // Periksa apakah kategori ada jika categoryId disediakan
     if (categoryId) {
       const category = await Category.findByPk(categoryId);
       if (!category) {
         res.status(400).json({
           success: false,
-          message: 'Invalid category'
+          message: 'Kategori tidak valid'
         });
         return;
       }
     }
     
-    // Set publishedAt if status is changing to published
+    // Atur publishedAt jika status berubah menjadi published
     let publishedAt = blog.publishedAt;
     if (status === 'published' && blog.status !== 'published') {
       publishedAt = new Date();
@@ -296,7 +319,7 @@ export const updateBlog = async (req: AuthRequest, res: Response): Promise<void>
       title: title || blog.title,
       content: content || blog.content,
       categoryId: categoryId || blog.categoryId,
-      image: image !== undefined ? image : blog.image,
+      image: imagePath, // image hanya menerima string
       status: status || blog.status,
       publishedAt
     });
@@ -321,16 +344,15 @@ export const updateBlog = async (req: AuthRequest, res: Response): Promise<void>
       data: updatedBlog
     });
   } catch (error) {
-    console.error('Update blog error:', error);
+    console.error('Error memperbarui blog:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Error server'
     });
   }
 };
 
-// Delete blog
-// Delete blog - admin only
+// Menghapus blog - hanya admin
 export const deleteBlog = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -338,17 +360,17 @@ export const deleteBlog = async (req: AuthRequest, res: Response): Promise<void>
     if (!req.userId) {
       res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Pengguna tidak terautentikasi'
       });
       return;
     }
     
-    // Admin check should already be handled by the adminMiddleware
-    // But we can add an extra check for safety
+    // Pemeriksaan admin seharusnya sudah ditangani oleh adminMiddleware
+    // Tapi kita bisa menambahkan pemeriksaan tambahan untuk keamanan
     if (req.user?.role !== 'admin') {
       res.status(403).json({
         success: false,
-        message: 'Only administrators can delete blog posts'
+        message: 'Hanya administrator yang dapat menghapus postingan blog'
       });
       return;
     }
@@ -358,22 +380,28 @@ export const deleteBlog = async (req: AuthRequest, res: Response): Promise<void>
     if (!blog) {
       res.status(404).json({
         success: false,
-        message: 'Blog not found'
+        message: 'Blog tidak ditemukan'
       });
       return;
+    }
+    
+    // Hapus file gambar jika ada
+    if (blog.image) {
+      const imagePath = path.join(process.cwd(), 'public', blog.image);
+      fileUtil.removeFile(imagePath);
     }
     
     await blog.destroy();
     
     res.json({
       success: true,
-      message: 'Blog deleted successfully'
+      message: 'Blog berhasil dihapus'
     });
   } catch (error) {
-    console.error('Delete blog error:', error);
+    console.error('Error menghapus blog:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Error server'
     });
   }
 };
