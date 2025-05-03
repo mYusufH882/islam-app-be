@@ -25,13 +25,11 @@ export const getAllBlogs = async (req: Request, res: Response): Promise<void> =>
       whereClause.categoryId = category;
     }
     
-    // Filter by status
+    // Filter by status - only add status to whereClause if it's provided
     if (status) {
       whereClause.status = status;
-    } else {
-      // By default, show only published blogs for public API
-      whereClause.status = 'published';
     }
+    // Removed the else block to avoid setting a default status filter
     
     // Search in title or content
     if (search) {
