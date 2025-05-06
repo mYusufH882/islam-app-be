@@ -14,6 +14,11 @@ const CACHE_TTL = {
   CALENDAR: 30 * 24 * 60 * 60 // 1 bulan
 };
 
+const DEFAULT_CITY = 'Bandung';
+const DEFAULT_COUNTRY = 'Indonesia';
+const DEFAULT_LATITUDE = -6.9175;
+const DEFAULT_LONGITUDE = 107.6191;
+
 /**
  * Service untuk berinteraksi dengan API Jadwal Sholat
  */
@@ -145,6 +150,15 @@ class PrayerService {
    * @param longitude - Koordinat longitude
    */
   async getLocation(latitude: number, longitude: number) {
+    // Buat kunci cache berdasarkan koordinat
+    const cacheKey = `location_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
+    
+    // Cek cache dulu
+    const cachedLocation = cacheUtil.get(cacheKey);
+    if (cachedLocation) {
+      return cachedLocation;
+    }
+    
     try {
       const response = await axios.get('https://api.bigdatacloud.net/data/reverse-geocode-client', {
         params: {
@@ -154,21 +168,56 @@ class PrayerService {
         }
       });
       
-      return {
-        city: response.data.city || response.data.locality || 'Unknown',
-        country: response.data.countryName,
+      // Periksa apakah ada informasi kota yang valid
+      const city = response.data.city || response.data.locality;
+      
+      // Jika kota tidak diketahui, gunakan Bandung sebagai default
+      if (!city || city === 'Unknown') {
+        console.log('City unknown, using Bandung as default');
+        const defaultLocation = {
+          city: DEFAULT_CITY,
+          country: DEFAULT_COUNTRY,
+          latitude: DEFAULT_LATITUDE,
+          longitude: DEFAULT_LONGITUDE,
+          usingDefault: true // Flag untuk memberi tahu frontend bahwa ini adalah lokasi default
+        };
+        
+        // Simpan ke cache dengan TTL lebih pendek (1 hari)
+        // Karena ini lokasi default, kita ingin mencoba lagi lebih cepat
+        cacheUtil.set(cacheKey, defaultLocation, 24 * 60 * 60);
+        
+        return defaultLocation;
+      }
+      
+      const locationData = {
+        city: city,
+        country: response.data.countryName || DEFAULT_COUNTRY,
         latitude,
-        longitude
+        longitude,
+        usingDefault: false
       };
+      
+      // Simpan ke cache dengan TTL 7 hari
+      cacheUtil.set(cacheKey, locationData, 7 * 24 * 60 * 60);
+      
+      return locationData;
     } catch (error) {
       console.error('Error getting location name:', error);
-      // Fallback jika API gagal
-      return {
-        city: 'Unknown',
-        country: 'Unknown',
-        latitude,
-        longitude
+      
+      // Fallback jika API gagal: gunakan Bandung
+      const defaultLocation = {
+        city: DEFAULT_CITY,
+        country: DEFAULT_COUNTRY,
+        latitude: DEFAULT_LATITUDE,
+        longitude: DEFAULT_LONGITUDE,
+        usingDefault: true
       };
+      
+      // Simpan ke cache dengan TTL pendek (12 jam)
+      // Supaya kita bisa mencoba API lagi lebih cepat jika ada masalah sementara
+      cacheUtil.set(cacheKey, defaultLocation, 12 * 60 * 60);
+      
+      return defaultLocation;
     }
   }
 }
