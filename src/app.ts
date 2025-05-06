@@ -24,8 +24,59 @@ import Category from './models/category.model';
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Middlewares
-app.use(cors());
+app.use('/uploads', (req, res, next) => {
+    // Allow access from any origin
+    res.header('Access-Control-Allow-Origin', '*');
+    // Allow cross-origin resource sharing
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Allow cross-origin embedder policy
+    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    // Allow preflight requests
+    if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      res.status(200).send();
+      return; // Just return, don't pass a Response object
+    }
+    
+    next();
+});
+  
+// Serve static files from uploads directory
+app.use('/uploads', express.static('public/uploads'));
+  
+// Then your CORS configuration for API routes
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+const allowedOrigins = [frontendUrl];
+
+// Add additional origins in development mode
+if (process.env.NODE_ENV === 'development') {
+    // Include localhost with different ports for development
+    allowedOrigins.push('http://localhost:3001');
+}
+  
+// Actually use the frontendUrl in CORS configuration
+app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log(`CORS blocked request from origin: ${origin}`);
+        // You can still allow the request but log it
+        callback(null, true);
+        
+        // Or strictly enforce CORS if needed:
+        // callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    exposedHeaders: ['Content-Range', 'X-Content-Range']
+}));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
