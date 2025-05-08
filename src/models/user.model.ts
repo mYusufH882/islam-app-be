@@ -67,7 +67,8 @@ User.init(
     },
     status: {
       type: DataTypes.ENUM('active', 'inactive'),
-      defaultValue: 'active'
+      defaultValue: 'active',
+      allowNull: false
     },
     lastLogin: {
       type: DataTypes.DATE

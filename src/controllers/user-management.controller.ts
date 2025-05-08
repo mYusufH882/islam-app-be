@@ -39,11 +39,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
       ];
     }
     
-    // Add status filter if provided
-    if (status) {
-      // Assuming you have an 'active' or 'status' field in your user model
-      whereClause.status = status;
+    // Add status filter if provided and valid
+    if (status && typeof status === 'string' && ['active', 'inactive'].includes(status)) {
+      // Type assertion untuk status
+      whereClause.status = status as 'active' | 'inactive';
     }
+    
+    // Log untuk debugging
+    console.log('Filter parameters:', { search, status, page, limit });
+    console.log('Where clause:', whereClause);
 
     // Find users with pagination
     const { rows: users, count } = await User.findAndCountAll({
@@ -55,6 +59,8 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
       limit: Number(limit),
       offset: offset
     });
+    
+    console.log(`Found ${users.length} users out of ${count} total`);
 
     res.json({
       success: true,
@@ -154,6 +160,9 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
     
+    // Pastikan status selalu valid dengan type assertion
+    const userStatus = (status === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive';
+    
     // Create the user - always as a 'user' role
     const user = await User.create({
       username,
@@ -161,7 +170,7 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
       password, // Will be hashed by the User model hook
       name,
       role: 'user', // Enforce 'user' role
-      status: status || 'active' // Default to active if not provided
+      status: userStatus // Gunakan nilai status yang sudah divalidasi dengan type yang benar
     });
     
     // Return the created user without the password
@@ -246,8 +255,13 @@ export const updateUser = async (req: AuthRequest, res: Response): Promise<void>
     if (username) updateData.username = username;
     if (email) updateData.email = email;
     if (name) updateData.name = name;
-    if (status) updateData.status = status;
     if (password) updateData.password = password; // Will be hashed by the User model hook
+    
+    // Handle status update with proper typecasting
+    if (status) {
+      // Ensure status is either 'active' or 'inactive'
+      updateData.status = (status === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive';
+    }
     
     // Update the user
     await user.update(updateData);
@@ -333,6 +347,7 @@ export const updateUserStatus = async (req: AuthRequest, res: Response): Promise
     const { id } = req.params;
     const { status } = req.body;
     
+    // Validate status value and type
     if (!status || !['active', 'inactive'].includes(status)) {
       res.status(400).json({
         success: false,
@@ -340,6 +355,9 @@ export const updateUserStatus = async (req: AuthRequest, res: Response): Promise
       });
       return;
     }
+    
+    // Type assertion to satisfy TypeScript
+    const userStatus = status as 'active' | 'inactive';
     
     // Check if the target user exists and is not an admin
     const user = await User.findOne({
@@ -358,11 +376,11 @@ export const updateUserStatus = async (req: AuthRequest, res: Response): Promise
     }
     
     // Update the user status
-    await user.update({ status });
+    await user.update({ status: userStatus });
     
     res.json({
       success: true,
-      message: `User ${status === 'active' ? 'activated' : 'deactivated'} successfully`
+      message: `User ${userStatus === 'active' ? 'activated' : 'deactivated'} successfully`
     });
   } catch (error) {
     console.error('Update user status error:', error);
