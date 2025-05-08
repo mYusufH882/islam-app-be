@@ -6,8 +6,6 @@ import { validateUserCreation, validateUserUpdate } from '../middlewares/user-va
 
 const router = Router();
 
-// Apply middleware to individual routes instead of to all routes
-
 // Get all users (excluding admins)
 router.get('/users', 
   authMiddleware, 
