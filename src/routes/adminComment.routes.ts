@@ -8,31 +8,40 @@ const router = Router();
 // Semua route admin memerlukan autentikasi dan admin role
 router.use(authMiddleware, adminRoleMiddleware);
 
-// Mendapatkan daftar komentar dengan filter
+// Route yang sudah ada
 router.get(
   '/comments',
   AdminCommentController.getComments
 );
 
-// Mendapatkan jumlah komentar berdasarkan status
 router.get(
   '/comments/count',
   AdminCommentController.getCommentCounts
 );
 
-// Memperbarui status komentar (approve/reject)
+// Rute statistik baru
+router.get(
+  '/comments/stats',
+  AdminCommentController.getCommentStats
+);
+
+// Rute aksi massal baru
+router.post(
+  '/comments/bulk-action',
+  AdminCommentController.bulkActionComments
+);
+
+// Route yang sudah ada lainnya
 router.put(
   '/comments/:commentId',
   AdminCommentController.updateCommentStatus
 );
 
-// Menandai komentar sudah dibaca
 router.put(
   '/comments/:commentId/read',
   AdminCommentController.markCommentAsRead
 );
 
-// Menghapus komentar
 router.delete(
   '/comments/:commentId',
   AdminCommentController.deleteComment
