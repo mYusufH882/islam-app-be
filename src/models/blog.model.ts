@@ -12,6 +12,7 @@ interface BlogAttributes {
   publishedAt?: Date;
   userId: number;
   categoryId: number;
+  commentCount?: number;
 }
 
 interface BlogCreationAttributes extends BlogAttributes {}
@@ -25,6 +26,7 @@ class Blog extends Model<BlogAttributes, BlogCreationAttributes> implements Blog
   public publishedAt!: Date;
   public userId!: number;
   public categoryId!: number;
+  public commentCount!: number;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -76,6 +78,11 @@ Blog.init(
         model: Category,
         key: 'id'
       }
+    },
+    commentCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
     }
   },
   {
