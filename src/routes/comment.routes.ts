@@ -5,10 +5,29 @@ import { validateCreateComment, validateUpdateComment } from '../middlewares/com
 
 const router = Router();
 
+router.get(
+  '/user/comments',
+  authMiddleware,
+  CommentController.getUserComments
+);
+
+router.get(
+  '/user/comment-counts',
+  authMiddleware,
+  CommentController.getUserCommentCounts
+);
+
 // Mendapatkan komentar untuk blog tertentu
 router.get(
   '/blogs/:blogId/comments',
   CommentController.getBlogComments
+);
+
+// Mendapatkan jumlah komentar berdasarkan status
+router.get(
+  '/user/comment-counts',
+  authMiddleware,
+  CommentController.getUserCommentCounts
 );
 
 // Membuat komentar baru

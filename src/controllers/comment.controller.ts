@@ -7,6 +7,119 @@ import userTrustService from '../services/userTrust.service';
 import commentFilterUtil from '../utils/commentFilter.util';
 import { Op, WhereOptions } from 'sequelize'; // Tambahkan WhereOptions
 
+// Mendapatkan komentar yang dibuat oleh pengguna tertentu
+export const getUserComments = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Validasi apakah pengguna login
+    if (!req.userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Login diperlukan untuk melihat komentar'
+      });
+      return;
+    }
+    
+    // Filter berdasarkan status jika parameter disediakan
+    const { status } = req.query;
+    
+    // Siapkan where clause
+    const whereClause: any = {
+      userId: req.userId
+    };
+    
+    // Tambahkan filter status jika ada
+    if (status && status !== 'all') {
+      whereClause.status = status;
+    }
+    
+    // Ambil komentar pengguna
+    const comments = await Comment.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'author',
+          attributes: ['id', 'name', 'username']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        comments
+      }
+    });
+  } catch (error) {
+    console.error('Error getting user comments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+// Mendapatkan jumlah komentar berdasarkan status
+export const getUserCommentCounts = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Login diperlukan'
+      });
+      return;
+    }
+    
+    // Count all comments
+    const totalCount = await Comment.count({
+      where: {
+        userId: req.userId
+      }
+    });
+    
+    // Count pending comments
+    const pendingCount = await Comment.count({
+      where: {
+        userId: req.userId,
+        status: 'pending'
+      }
+    });
+    
+    // Count approved comments
+    const approvedCount = await Comment.count({
+      where: {
+        userId: req.userId,
+        status: 'approved'
+      }
+    });
+    
+    // Count rejected comments
+    const rejectedCount = await Comment.count({
+      where: {
+        userId: req.userId,
+        status: 'rejected'
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        total: totalCount,
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error getting comment counts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
 // Mendapatkan komentar untuk blog tertentu
 export const getBlogComments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
